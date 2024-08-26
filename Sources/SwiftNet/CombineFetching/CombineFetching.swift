@@ -3,30 +3,32 @@ import SwiftUI
 import Combine
 
 /**
- A class that handles the fetching and management of data models and images using Combine.
+ A utility class that handles fetching JSON data or raw data from a URL using Combine framework.
 
- The `CombineFetching` class is a generic class where `T` conforms to the `FetchableModel` protocol. It provides functionalities to fetch JSON data and images from given URLs, and publishes the fetched data so that it can be observed by SwiftUI views.
+ The `CombineFetching` class is designed to fetch data from the internet using `URLSession` and Combine's `Publisher` mechanisms. It can decode JSON data into specified models conforming to the `FetchableModel` protocol or fetch raw data directly.
+
+ - Note: The fetched data is handled asynchronously and returned via completion handlers.
 
  - Parameters:
-    - dataModels: An array of fetched data models of type `T`. This is automatically updated when JSON data is successfully fetched.
-    - uiImages: An array of `UIImage` objects that are fetched from image URLs. This is automatically updated when images are successfully fetched.
-    - cancellables: A set of `AnyCancellable` objects used to store subscriptions for Combine pipelines.
+    - T: A generic type parameter constrained to `FetchableModel`, representing the model type that the fetched JSON data will be decoded into.
+    - cancellables: A set of `AnyCancellable` used to store subscriptions, ensuring they are retained during the network request lifecycle.
+
+ - Usage:
+   1. Call `fetchJSON(fromURL:completionHandler:)` to fetch and decode JSON data.
+   2. Call `fetchData(fromURL:completionHandler:)` to fetch raw data (e.g., images or other binary content).
  */
+
 public class CombineFetching<T: FetchableModel>: ObservableObject {
-    @Published var dataModels: [T] = []
-    @Published var uiImages: [UIImage] = []
     var cancellables = Set<AnyCancellable>()
-    
+
     /**
-      Fetches JSON data from the given URL and decodes it into an array of data models of type `T`.
-
-      This function uses `NetworkManager` to perform a data task publisher, then decodes the JSON data into an array of models that conform to the `FetchableModel` protocol. The result is published to the `dataModels` property. If a completion handler is provided, it will be called after the data is successfully fetched and assigned.
-
-      - Parameters:
-         - url: A `String` representing the URL to fetch the JSON data from.
-         - completionHandler: An optional closure that gets called when the data fetching and decoding process is complete. Default value is `nil`.
-      */
-    public func fetchJSON(fromURL url: String, completionHandler: (() -> Void)? = nil) {
+     Fetches JSON data from the specified URL, decodes it into an array of the specified model type `T`, and returns it through a completion handler.
+     
+     - Parameters:
+        - url: The URL string from which to fetch the JSON data.
+        - completionHandler: A closure that is called upon completion of the fetch operation. The closure takes an optional array of `T` as its parameter, which is `nil` if the fetch or decoding fails.
+     */
+    public func fetchJSON(fromURL url: String, completionHandler: @escaping ([T]?) -> ()) {
         guard let url = URL(string: url) else { return }
         
         NetworkManager.dataTaskPublisher(fromURL: url)
@@ -37,42 +39,38 @@ public class CombineFetching<T: FetchableModel>: ObservableObject {
                     print("Finished fetching JSON")
                 case .failure(let error):
                     print("Failed to fetch JSON: \(error)")
+                    completionHandler(nil)
                 }
-            } receiveValue: { [weak self] returnedData in
-                self?.dataModels = returnedData
-                completionHandler?()
+            } receiveValue: { returnedData in
+                completionHandler(returnedData)
             }
             .store(in: &cancellables)
     }
     
     /**
-        Fetches images from the given URL and converts them to `UIImage` objects.
-
-        This function uses `NetworkManager` to perform a data task publisher, then attempts to convert the fetched data into `UIImage` objects. If successful, the images are appended to the `uiImages` array.
-
-        - Parameters:
-           - url: A `String` representing the URL to fetch the image data from.
-        */
-    public func fetchUIImages(fromURL url: String) {
+     Fetches raw data from the specified URL and returns it through a completion handler.
+     
+     - Parameters:
+        - url: The URL string from which to fetch the raw data.
+        - completionHandler: A closure that is called upon completion of the fetch operation. The closure takes an optional `Data` object as its parameter, which is `nil` if the fetch fails.
+     */
+    public func fetchData(fromURL url: String, completionHandler: @escaping (Data?) -> ()) {
         guard let url = URL(string: url) else { return }
         
         NetworkManager.dataTaskPublisher(fromURL: url)
-            .tryMap { data -> UIImage? in
-                UIImage(data: data)
+            .tryMap { data in
+                return data
             }
             .sink { completion in
                 switch completion {
                 case .finished:
-                    print("Finished fetching image")
+                    print("Finished fetching data")
                 case .failure(let error):
-                    print("Failed to fetch image: \(error)")
+                    print("Failed to fetch data: \(error)")
+                    completionHandler(nil)
                 }
-            } receiveValue: { [weak self] returnedImage in
-                if let image = returnedImage {
-                    self?.uiImages.append(image)
-                } else {
-                    print("Failed to convert data to UIImage")
-                }
+            } receiveValue: { returnedData in
+               completionHandler(returnedData)
             }
             .store(in: &cancellables)
     }

@@ -9,11 +9,12 @@ import SwiftUI
 
 struct CombineJSONFetchingExample: View {
     @StateObject var vm = CombineFetching<DataModel>()
+    @State var  data: [DataModel] = []
     let url: String = "https://jsonplaceholder.typicode.com/posts"
     
     var body: some View {
         List {
-            ForEach(vm.dataModels) { item in
+            ForEach(data) { item in
                 VStack(alignment: .leading) {
                     Text(item.title)
                         .font(.headline)
@@ -24,7 +25,11 @@ struct CombineJSONFetchingExample: View {
             }
         }
         .onAppear {
-            vm.fetchJSON(fromURL: url)
+            vm.fetchJSON(fromURL: url) { returnedData in
+                if let data = returnedData {
+                    self.data = data
+                }
+            }
         }
     }
 }

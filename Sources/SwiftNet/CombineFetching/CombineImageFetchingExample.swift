@@ -17,19 +17,15 @@ struct ImageModel: FetchableModel {
 
 struct CombineImageFetchingExample: View {
     @StateObject var vm = CombineFetching<ImageModel>()
+    @State var dataModels: [ImageModel] = []
+    @State var images: [UIImage] = []
     let url: String = "https://jsonplaceholder.typicode.com/photos"
-    
-    func downloadAllImages() {
-        for dataModel in vm.dataModels {
-            vm.fetchUIImages(fromURL: dataModel.url)
-        }
-    }
     
     var body: some View {
         ScrollView {
             VStack {
-                ForEach(vm.uiImages.indices, id: \.self) { index in
-                    Image(uiImage: vm.uiImages[index])
+                ForEach(images.indices, id: \.self) { index in
+                    Image(uiImage: images[index])
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 80, height: 80)
@@ -39,8 +35,17 @@ struct CombineImageFetchingExample: View {
             }
         }
         .onAppear {
-            vm.fetchJSON(fromURL: url) {
-                downloadAllImages()
+            vm.fetchJSON(fromURL: url) { returnedData in
+                if let data = returnedData {
+                    self.dataModels = data
+                }
+                for dataModel in dataModels {
+                    vm.fetchData(fromURL: dataModel.url) { returnedData in
+                        if let data = returnedData, let image = UIImage(data: data) {
+                            self.images.append(image)
+                        }
+                    }
+                }
             }
         }
     }
