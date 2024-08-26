@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct CombineFetchingExample: View {
+struct CombineJSONFetchingExample: View {
     @StateObject var vm = CombineFetching<DataModel>()
     let url: String = "https://jsonplaceholder.typicode.com/posts"
     
@@ -30,5 +30,5 @@ struct CombineFetchingExample: View {
 }
 
 #Preview {
-    CombineFetchingExample()
+    CombineJSONFetchingExample()
 }

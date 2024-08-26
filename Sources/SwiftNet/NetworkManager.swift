@@ -6,9 +6,12 @@
 //
 
 import Foundation
+import Combine
 
-private class NetworkManager: ObservableObject {
-    private static func dataTask(fromURL url: URL, completionHandler: @escaping (_ data: Data?) -> ()) {
+public protocol FetchableModel: Identifiable, Codable {}
+
+public class NetworkManager: ObservableObject {
+    public static func dataTask(fromURL url: URL, completionHandler: @escaping (_ data: Data?) -> ()) {
         URLSession.shared.dataTask(with: url) { data, response, error in
             guard let data = data,
                   error == nil,
@@ -20,5 +23,19 @@ private class NetworkManager: ObservableObject {
             }
             return completionHandler(data)
         }.resume()
+    }
+    
+    public static func dataTaskPublisher(fromURL url: URL) -> AnyPublisher<Data, Error> {
+        URLSession.shared.dataTaskPublisher(for: url)
+            .subscribe(on: DispatchQueue.global(qos: .background))
+            .receive(on: DispatchQueue.main)
+            .tryMap { data, response in
+                guard let response = response as? HTTPURLResponse,
+                      response.statusCode >= 200 && response.statusCode < 300 else {
+                    throw URLError(.badServerResponse)
+                }
+                return data
+            }
+            .eraseToAnyPublisher()
     }
 }

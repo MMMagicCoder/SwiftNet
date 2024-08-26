@@ -25,7 +25,7 @@ struct EscapingFetchingExample: View {
                     Text(item.title)
                         .font(.headline)
                     Text(item.body)
-                        .foregroundStyle(.gray)
+                        .foregroundColor(.gray)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
