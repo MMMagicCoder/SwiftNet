@@ -14,7 +14,7 @@ struct DataModel: FetchableModel {
     let body: String
 }
 
-struct EscapingFetchingExample: View {
+struct EscapingJSONFetchingExample: View {
     @StateObject var escapingFetching = EscapingFetching<DataModel>()
     let url: String = "https://jsonplaceholder.typicode.com/posts"
     
@@ -31,12 +31,12 @@ struct EscapingFetchingExample: View {
             }
         }
         .onAppear {
-            escapingFetching.fetchData(fromURL: url)
+            escapingFetching.fetchJSON(fromURL: url)
         }
     }
 }
 
 #Preview {
-    EscapingFetchingExample()
+    EscapingJSONFetchingExample()
         .previewDevice("iPhone 15")
 }
