@@ -2,66 +2,102 @@ import Foundation
 import SwiftUI
 
 /**
- A class that handles the fetching and management of data models using an escaping closure.
-
- The `EscapingFetching` class is a generic class where `T` conforms to the `FetchableModel` protocol. It provides functionality to fetch JSON data from a given URL, decode it into an array of data models, and publish the fetched data so that it can be observed by SwiftUI views.
-
+ A utility class for fetching data from a network resource, supporting both JSON decoding into a model and raw data fetching.
+ 
+ The `EscapingFetching` class provides two methods:
+ 
+ - `fetchJSON(fromURL:completionHandler:)`: Fetches JSON data from a given URL, decodes it into an array of models conforming to the `FetchableModel` protocol, and returns the decoded data via a completion handler.
+ - `fetchData(fromURL:completionHandler:)`: Fetches raw data from a given URL and returns it via a completion handler. This method can be used for fetching image data or other non-JSON data.
+ 
+ - Note: Both methods perform network requests asynchronously and execute the completion handler on the main thread.
+ 
  - Parameters:
-    - dataModelItems: An array of fetched data models of type `T`. This array is automatically updated when JSON data is successfully fetched.
+ - T: A generic type conforming to the `FetchableModel` protocol, representing the model to decode the JSON data into.
  */
+
 public class EscapingFetching<T: FetchableModel>: ObservableObject {
-    @Published var dataModelItems: [T] = []
-    @Published var uiImages: [UIImage] = []
     
     /**
-         Fetches JSON data from the given URL and decodes it into an array of data models of type `T`.
-
-         This function uses `NetworkManager` to perform a data task and then decodes the JSON data into an array of models that conform to the `FetchableModel` protocol. The result is published to the `dataModelItems` property. The data fetching is performed using an escaping closure, allowing asynchronous operations.
-
-         - Parameters:
-            - url: A `String` representing the URL to fetch the JSON data from.
-         */
-    public func fetchJSON(fromURL url: String, completionHandler: (() -> Void)? = nil) {
+     Fetches JSON data from a specified URL, decodes it into an array of `T` models, and returns the result via a completion handler.
+     
+     - Parameters:
+     - url: The URL string from which to fetch the JSON data.
+     - completionHandler: A closure that gets called with the decoded data on success, or `nil` if the operation fails.
+     
+     - Note: If the data fetching or decoding process fails, the completion handler will be called with `nil`.
+     */
+    public func fetchJSON(fromURL url: String, completionHandler: @escaping ([T]?) -> ()) {
         guard let url = URL(string: url) else { return }
         
         NetworkManager.dataTask(fromURL: url) { returnedData in
             if let data = returnedData {
-                guard let newDataModelItem = try? JSONDecoder().decode([T].self, from: data) else { return }
+                guard let dataModel = try? JSONDecoder().decode([T].self, from: data) else { return }
                 
-                DispatchQueue.main.async { [weak self] in
-                    self?.dataModelItems = newDataModelItem
-                    completionHandler?()
+                DispatchQueue.main.async {
+                    completionHandler(dataModel)
                 }
             } else {
-                print("Somthing went wrong during fetching data!!!")
+                print("Something went wrong during fetching data!!!")
+                completionHandler(nil)
             }
         }
     }
     
     /**
-     Fetches an image from the given URL and appends it to the `uiImages` array.
-
-     This function uses `NetworkManager` to perform a data task that fetches image data from the specified URL. The image data is then converted to a `UIImage` object and added to the `uiImages` array. The image fetching is performed asynchronously using an escaping closure, allowing the operation to be executed in the background without blocking the main thread.
-
+     Fetches raw data from a specified URL and returns the result via a completion handler.
+     
      - Parameters:
-        - url: A `String` representing the URL to fetch the image from.
+     - url: The URL string from which to fetch the raw data.
+     - completionHandler: A closure that gets called with the fetched data on success, or `nil` if the operation fails.
+     
+     - Note: This method is useful for fetching non-JSON data such as images.
      */
-    public func fetchUIImage(fromURL url: String) {
+    public func fetchData(fromURL url: String, completionHandler: @escaping (Data?) -> ()) {
         guard let url = URL(string: url) else { return }
         
         NetworkManager.dataTask(fromURL: url) { returnedData in
             if let data = returnedData {
-                guard let image = UIImage(data: data) else {
-                               print("Failed to convert data to image")
-                               return
-                           }
-                
-                DispatchQueue.main.async { [weak self] in
-                    self?.uiImages.append(image)
+                DispatchQueue.main.async {
+                    completionHandler(data)
                 }
             } else {
                 print("Something went wrong during fetching the image!!!")
+                completionHandler(nil)
             }
         }
+    }
+    
+    public func downloadData(fromURL url: String, completionHandler: @escaping (URL?, URLResponse?, Error?) -> ()) {
+        guard let url = URL(string: url) else { return }
+        URLSession.shared.downloadTask(with: url) { tempLocalUrl, response, error in
+            if let error = error {
+                print("Download error: \(error.localizedDescription)")
+                completionHandler(nil, response, error)
+                return
+            }
+            
+            guard let tempLocalUrl = tempLocalUrl else {
+                print("No file location recieved!")
+                completionHandler(nil, response, nil)
+                return
+            }
+            
+            let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            let fileName = url.lastPathComponent
+            let destinationUrl = documentsDirectory.appendingPathComponent(fileName)
+            
+            do {
+                if FileManager.default.fileExists(atPath: destinationUrl.path) {
+                    try FileManager.default.removeItem(at: destinationUrl)
+                }
+                try FileManager.default.moveItem(at: tempLocalUrl, to: destinationUrl)
+                print("File successfully downloaded to: \(destinationUrl.path)")
+                completionHandler(destinationUrl, response, nil)
+                
+            } catch let moveError {
+                print("File move error: \(moveError.localizedDescription)")
+                completionHandler(nil, response, moveError)
+            }
+        }.resume()
     }
 }

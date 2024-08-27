@@ -1,19 +1,4 @@
-//
-//  SwiftUIView.swift
-//  
-//
-//  Created by mohammadmahdi moayeri on 8/25/24.
-//
-
 import SwiftUI
-
-struct ImageModel: FetchableModel {
-    let albumId: Int
-    let id: Int
-    let title: String
-    let url: String
-    let thumbnailUrl: String
-}
 
 struct CombineImageFetchingExample: View {
     @StateObject var vm = CombineFetching<ImageModel>()
@@ -35,6 +20,25 @@ struct CombineImageFetchingExample: View {
             }
         }
         .onAppear {
+            //            Documentation
+            /*
+             1. Initial Data Fetch:
+             The code begins by triggering a function to fetch JSON data from a specified URL.
+             This JSON data is expected to contain various data models, each potentially containing a URL pointing to some resource.
+             
+             2. Data Processing:
+             Once the JSON data is successfully fetched, it is processed and stored in a local variable or array.
+             The code then iterates over the fetched data models.
+             
+             3. Fetching Associated Resources:
+             For each data model, the code extracts a URL and initiates another request to fetch the resource from that URL.
+             In this specific case, the resource is expected to be image data.
+             
+             4. Resource Handling:
+             Upon successfully retrieving the resource (in this case, image data), it is converted from raw data to an image format (e.g., UIImage).
+             The image is then stored in a local collection (e.g., an array).
+             This process repeats for each data model retrieved in the initial JSON fetch.
+             */
             vm.fetchJSON(fromURL: url) { returnedData in
                 if let data = returnedData {
                     self.dataModels = data

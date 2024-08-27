@@ -8,8 +8,6 @@
 import Foundation
 import Combine
 
-public protocol FetchableModel: Identifiable, Codable {}
-
 public class NetworkManager: ObservableObject {
     public static func dataTask(fromURL url: URL, completionHandler: @escaping (_ data: Data?) -> ()) {
         URLSession.shared.dataTask(with: url) { data, response, error in

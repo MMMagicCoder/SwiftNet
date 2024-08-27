@@ -1,8 +1,18 @@
-//
-//  File.swift
-//  
-//
-//  Created by mohammadmahdi moayeri on 8/27/24.
-//
-
 import Foundation
+
+public protocol FetchableModel: Identifiable, Codable {}
+
+struct DataModel: FetchableModel {
+    let userId: Int
+    let id: Int
+    let title: String
+    let body: String
+}
+
+struct ImageModel: FetchableModel {
+    let albumId: Int
+    let id: Int
+    let title: String
+    let url: String
+    let thumbnailUrl: String
+}
