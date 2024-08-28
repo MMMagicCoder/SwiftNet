@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SwiftUIView: View {
-    @StateObject var vm = EscapingFetching<ImageModel>()
+    @StateObject var vm = EscapingFetching()
     @State var dataModels: [ImageModel] = []
     @State var images: [UIImage] = []
     let url: String = "https://jsonplaceholder.typicode.com/photos"
