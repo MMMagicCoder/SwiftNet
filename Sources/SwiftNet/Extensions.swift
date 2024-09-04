@@ -9,20 +9,6 @@ import Foundation
 import Combine
 
 public class NetworkManager: ObservableObject {
-    public static func dataTask(fromURL url: URL, completionHandler: @escaping (_ data: Data?) -> ()) {
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            guard let data = data,
-                  error == nil,
-                    let response = response as? HTTPURLResponse,
-                  response.statusCode >= 200 && response.statusCode < 300 else {
-                print("Error downloading data!!!")
-                completionHandler(nil)
-                return
-            }
-            return completionHandler(data)
-        }.resume()
-    }
-    
     public static func dataTaskPublisher(fromURL url: URL) -> AnyPublisher<Data, Error> {
         URLSession.shared.dataTaskPublisher(for: url)
             .subscribe(on: DispatchQueue.global(qos: .background))
@@ -35,5 +21,22 @@ public class NetworkManager: ObservableObject {
                 return data
             }
             .eraseToAnyPublisher()
+    }
+}
+
+
+extension URLSession {
+    func downloadTaskPublisher(fromURL url: URL) -> AnyPublisher<(URL, URLResponse), URLError> {
+        Future<(URL, URLResponse), URLError> { promise in
+            let downloadTask = self.downloadTask(with: url) { tempURL, response, error in
+                if let error = error {
+                    promise(.failure(error as? URLError ?? URLError(.unknown)))
+                } else if let tempURL = tempURL, let response = response {
+                    promise(.success((tempURL, response)))
+                }
+            }
+            downloadTask.resume()
+        }
+        .eraseToAnyPublisher()
     }
 }
