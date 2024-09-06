@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-struct EscapingUploading: View {
-    let uploader = EscapingDownloadingUploading()
+struct EscapingUploadData: View {
+    @StateObject private  var networkManager = EscapingNetworkManager()
     let url: String = "https://jsonplaceholder.typicode.com/posts"
     @State var message: String = ""
     let json: [String: Any] = [
@@ -30,7 +30,7 @@ struct EscapingUploading: View {
         VStack(spacing: 20) {
             Button(action: {
                 guard let json = convertToJson(json: json) else { return }
-                uploader.uploadingData(toURL: url, data: json, mimType: .json) { response , error in
+                networkManager.uploadData(toURL: url, data: json, mimeType: .json) { response , error in
                     if let error = error {
                             message = "Upload error: \(error.localizedDescription)"
                         } else if let response = response as? HTTPURLResponse, response.statusCode == 201 {
@@ -44,7 +44,7 @@ struct EscapingUploading: View {
                 Text("Tap to upload...")
                     .foregroundColor(.white)
                     .fontWeight(.bold)
-                    .frame(width: 250, height: 100)
+                    .frame(width: 250, height: 80)
                     .background(Color.blue)
                     .clipShape(RoundedRectangle(cornerRadius: 25))
             })
@@ -55,5 +55,5 @@ struct EscapingUploading: View {
 }
 
 #Preview {
-    EscapingUploading()
+    EscapingUploadData()
 }

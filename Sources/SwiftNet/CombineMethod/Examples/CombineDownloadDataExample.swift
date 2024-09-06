@@ -2,18 +2,17 @@
 //  SwiftUIView.swift
 //  
 //
-//  Created by mohammadmahdi moayeri on 8/28/24.
+//  Created by mohammadmahdi moayeri on 9/6/24.
 //
 
 import SwiftUI
 
-struct EscapingDownloadData: View {
-    @StateObject var escapin
+struct SwiftUIView: View {
     var body: some View {
         Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
     }
 }
 
 #Preview {
-    EscapingDownloadData()
+    SwiftUIView()
 }
