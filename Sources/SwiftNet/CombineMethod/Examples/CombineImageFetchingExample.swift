@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct CombineImageFetchingExample: View {
-    @StateObject var vm = CombineFetching<ImageModel>()
+    @StateObject private  var networkManager = CombineNetworkManager()
     @State var dataModels: [ImageModel] = []
     @State var images: [UIImage] = []
     let url: String = "https://jsonplaceholder.typicode.com/photos"
@@ -39,15 +39,14 @@ struct CombineImageFetchingExample: View {
              The image is then stored in a local collection (e.g., an array).
              This process repeats for each data model retrieved in the initial JSON fetch.
              */
-            vm.fetchJSON(fromURL: url) { returnedData in
-                if let data = returnedData {
-                    self.dataModels = data
-                }
+            networkManager.fetchJSON(fromURL: url) { (returnedData: [ImageModel]?, response, error)  in
+                guard let data = returnedData else { return }
+                self.dataModels = data
+                
                 for dataModel in dataModels {
-                    vm.fetchData(fromURL: dataModel.url) { returnedData in
-                        if let data = returnedData, let image = UIImage(data: data) {
-                            self.images.append(image)
-                        }
+                    networkManager.fetchData(fromURL: dataModel.url) { (imageData, response, error)  in
+                        guard let imageData = imageData, let image = UIImage(data: imageData) else { return }
+                        self.images.append(image)
                     }
                 }
             }

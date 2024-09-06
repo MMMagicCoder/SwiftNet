@@ -9,6 +9,8 @@ import SwiftUI
  - Important: This class uses a default `URLSession` configuration. For more advanced use cases, you may need to customize the session configuration or delegate methods.
  
  - Usage:
+ - Call `fetchJSON(fromURL:completionHandler:)` to fetch JSON file to your FetchableModel variable.
+ - Call `fetchData(fromURL:completionHandler:)` to fetch small raw data to show it immediately.
  - Call `downloadData(fromURL:completionHandler:)` to start or resume a file download.
  - Call `uploadingData(toURL:data:mimType:completionHandler:)` to upload data with an optional MIME type.
  - Call `pauseDownload()` to pause an ongoing download.
@@ -22,26 +24,84 @@ import SwiftUI
  - `observation`: An `NSKeyValueObservation` object for observing download progress changes.
  
  - Methods:
+ - `fetchJSON(fromURL:completionHandler:)`: Fetch JSON file to your FetchableModel variable from the specified URL.
+ - `fetchData(fromURL:completionHandler:)` Fetch small raw data to show it immediately from the specified URL.
  - `downloadData(fromURL:completionHandler:)`: Starts or resumes a download from the specified URL.
  - `uploadingData(toURL:data:mimType:completionHandler:)`: Uploads the specified data to the given URL with an optional MIME type.
  - `pauseDownload()`: Pauses the current download and saves the data necessary to resume it later.
  - `cancelDownload()`: Cancels the ongoing download and clears any saved resume data.
  - `cancelUpload()`: Cancels the ongoing upload.
  */
-public class EscapingNetworkManager: NSObject , ObservableObject, URLSessionDelegate {
-    private var downloadTask: URLSessionDownloadTask?
-    private var resumeData: Data?
-    private var uploadTask: URLSessionUploadTask?
-    
-    @Published var observation: NSKeyValueObservation?
+public class EscapingNetworkManager:  ObservableObject{
     @Published var downloadProgress: Double = 0.0
-    @Published var uploadProgress: Double = 0.0
     
-    private lazy var session: URLSession = {
-        let configuration = URLSessionConfiguration.default
-        return URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
-    }()
+    private let dataManager: EscapingDataManager
+    private let downloadManager: EscapingDownloadManager
+    private let uploadManager: EscapingUploadManager
     
+    public init() {
+        dataManager = EscapingDataManager(session: URLSession.shared)
+        downloadManager = EscapingDownloadManager(session: URLSession.shared)
+        uploadManager = EscapingUploadManager(session: URLSession.shared)
+        
+        downloadManager.$downloadProgress
+                    .assign(to: &$downloadProgress)
+    }
+    
+    // MARK: - Fetch Data
+    /**
+     Fetches JSON data from the specified URL and decodes it into an array of model objects that conform to `FetchableModel`.
+     
+     This method performs a network request to the provided URL, attempts to decode the received data into an array of model objects, and invokes the completion handler with the decoded data or an error if the request or decoding fails.
+     
+     - Parameters:
+       - url: The URL string from which to fetch the JSON data. This string must be a valid URL.
+       - completionHandler: A closure that gets called when the network request completes. It provides an array of decoded model objects, the URL response, and any error encountered during the request or decoding process.
+     
+     - Note: The `FetchableModel` protocol is used to define the model objects that the JSON data should be decoded into. Ensure that the model conforms to `Decodable` and matches the structure of the JSON data.
+     
+     - Example:
+       ```swift
+       let networkManager = EscapingNetworkManager()
+       networkManager.fetchJSON(fromURL: "https://example.com/data.json") { (model: [YourModel]?, response, error) in
+           if let model = model {
+               // Handle the successfully decoded model array
+           } else if let error = error {
+               // Handle the error
+           }
+       }
+**/
+      public func fetchJSON<T: FetchableModel>(fromURL url: String, completionHandler: @escaping ([T]?, URLResponse?, Error?) -> ()) {
+          dataManager.fetchJSON(fromURL: url, completionHandler: completionHandler)
+      }
+      
+    /**
+     Fetches raw data from the specified URL.
+     
+     This method performs a network request to the provided URL and invokes the completion handler with the raw data received from the server, or with an error if the request fails.
+
+     - Parameters:
+       - url: The URL string from which to fetch the data. This string must be a valid URL.
+       - completionHandler: A closure that gets called when the network request completes. It provides the raw data received from the server, the URL response, and any error encountered during the request.
+     
+     - Note: This method does not attempt to decode or process the raw data; it simply returns it as-is. Use this method when you need to work with the raw data directly, such as for downloading files or handling custom data formats.
+     
+     - Example:
+       ```swift
+       let networkManager = EscapingNetworkManager()
+       networkManager.fetchData(fromURL: "https://example.com/file.dat") { data, response, error in
+           if let data = data {
+               // Handle the raw data
+           } else if let error = error {
+               // Handle the error
+           }
+       }
+**/
+      public func fetchData(fromURL url: String, completionHandler: @escaping (Data?, URLResponse?, Error?) -> ()) {
+          dataManager.fetchData(fromURL: url, completionHandler: completionHandler)
+      }
+      
+      // MARK: - Download Data
     /**
      Initiates a download from the specified URL. If the download was previously paused, it resumes from where it left off.
      
@@ -53,7 +113,7 @@ public class EscapingNetworkManager: NSObject , ObservableObject, URLSessionDele
      
      - Example:
      ```swift
-     let downloader = EscapingDownloadingUploading()
+     @StateObject var downloader = EscapingNetworkManager()
      downloader.downloadData(fromURL: "https://example.com/file.zip") { localUrl, response, error in
      if let localUrl = localUrl {
      // Handle the successful download
@@ -63,30 +123,43 @@ public class EscapingNetworkManager: NSObject , ObservableObject, URLSessionDele
      }
      ```
      */
-    public func downloadData(fromURL url: String, completionHandler: @escaping (URL?, URLResponse?, Error?) -> ()) {
-        guard let url = URL(string: url) else { return }
-        
-        if let resumeData = resumeData {
-            // Resume download if resumeData is available
-            downloadTask = session.downloadTask(withResumeData: resumeData) { tempLocalUrl, response, error in
-                self.handleDownloadCompletion(tempLocalUrl: tempLocalUrl, response: response, error: error, completionHandler: completionHandler)
-            }
-        } else {
-            // Start a new download
-            downloadTask = session.downloadTask(with: url) { tempLocalUrl, response, error in
-                self.handleDownloadCompletion(tempLocalUrl: tempLocalUrl, response: response, error: error, completionHandler: completionHandler)
-            }
-        }
-        
-        observation = downloadTask?.progress.observe(\.fractionCompleted)  { observationProgress, _ in
-            DispatchQueue.main.async {
-                self.downloadProgress = observationProgress.fractionCompleted
-            }
-        }
-        
-        downloadTask?.resume()
-    }
+      public func downloadData(fromURL url: String, completionHandler: @escaping (URL?, URLResponse?, Error?) -> ()) {
+          downloadManager.downloadData(fromURL: url, completionHandler: completionHandler)
+      }
     
+    /**
+     Pauses an ongoing download and saves the data necessary to resume it later.
+     
+     This method cancels the download task but produces resume data that can be used to restart the download from where it left off.
+     
+     - Note: After pausing, you can resume the download by calling `downloadData(fromURL:completionHandler:)` again.
+     
+     - Example:
+     ```swift
+     let downloader = EscapingNetworkManager()
+     downloader.pauseDownload()
+     ```
+     */
+      public func pauseDownload() {
+          downloadManager.pauseDownload()
+      }
+      
+    /**
+     Cancels the current download and clears any saved resume data.
+     
+     This method completely stops the download process and removes any data saved for resuming the download later.
+     
+     - Example:
+     ```swift
+     let downloader = EscapingNetworkManager()
+     downloader.cancelDownload()
+     ```
+     */
+      public func cancelDownload() {
+          downloadManager.cancelDownload()
+      }
+      
+      // MARK: - Upload Data
     /**
      Uploads data to the specified URL with an optional MIME type. This method handles the upload task and processes the server's response.
      
@@ -100,9 +173,9 @@ public class EscapingNetworkManager: NSObject , ObservableObject, URLSessionDele
      
      - Example:
      ```swift
-     let uploader = EscapingDownloadingUploading()
+     @StateObject var uploader = EscapingNetworkManager()
      let dataToUpload = Data() // Your file data here
-     uploader.uploadingData(toURL: "https://example.com/upload", data: dataToUpload, mimType: .jpeg) { response, error in
+     uploader.uploadData(toURL: "https://example.com/upload", data: dataToUpload, mimType: .jpeg) { response, error in
      if let response = response {
      // Handle the successful upload
      } else if let error = error {
@@ -111,130 +184,22 @@ public class EscapingNetworkManager: NSObject , ObservableObject, URLSessionDele
      }
      ```
      */
-    public func uploadingData(toURL url: String, data: Data, mimType: MIMEType? = .binary ,completionHandler: @escaping (URLResponse? , Error?) -> ()) {
-        guard let url = URL(string: url) else { return }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue(mimType?.asString(), forHTTPHeaderField: "Content-Type")
-        
-        uploadTask = session.uploadTask(with: request, from: data) { responseData, response, error in
-            if let error = error {
-                print("Upload error: \(error.localizedDescription)")
-                completionHandler(response, error)
-                return
-            }
-            
-            guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
-                print("Upload failed with response: \(String(describing: response))")
-                completionHandler(response, nil)
-                return
-            }
-            
-            print("Upload successful!")
-            completionHandler(response, nil)
-        }
-        
-        observation = uploadTask?.progress.observe(\.fractionCompleted) { observationProgress, _ in
-            DispatchQueue.main.async {
-                self.uploadProgress = observationProgress.fractionCompleted
-            }
-        }
-        
-        uploadTask?.resume()
-    }
-    
+      public func uploadData(toURL url: String, data: Data, mimeType: MIMEType? = .binary, completionHandler: @escaping (URLResponse?, Error?) -> ()) {
+          uploadManager.uploadData(toURL: url, data: data, mimeType: mimeType, completionHandler: completionHandler)
+      }
+      
     /**
-     Pauses an ongoing download and saves the data necessary to resume it later.
-     
-     This method cancels the download task but produces resume data that can be used to restart the download from where it left off.
-     
-     - Note: After pausing, you can resume the download by calling `downloadData(fromURL:completionHandler:)` again.
-     
-     - Example:
-     ```swift
-     let downloader = EscapingDownloadingUploading()
-     downloader.pauseDownload()
-     ```
-     */
-    public func pauseDownload() {
-        downloadTask?.cancel(byProducingResumeData: { resumeDataOrNil in
-            self.resumeData = resumeDataOrNil
-            self.downloadTask = nil
-        })
-    }
-    
-    /**
-     Cancels the current download and clears any saved resume data.
-     
-     This method completely stops the download process and removes any data saved for resuming the download later.
-     
-     - Example:
-     ```swift
-     let downloader = EscapingDownloadingUploading()
-     downloader.cancelDownload()
-     ```
-     */
-    public func cancelDownload() {
-        downloadTask?.cancel()
-        downloadTask = nil
-        resumeData = nil
-    }
-    
-    /**
-     Cancels the current upload.
-     
-     This method completely stops the upload process.
-     
-     - Example:
-     ```swift
-     let uploader = EscapingDownloadingUploading()
-     uploader.cancelUpload()
-     ```
-     */
-    public func cancelUpload() {
-        uploadTask?.cancel()
-        uploadTask = nil
-    }
-    
-    /**
-     Handles the completion of a download task, saving the downloaded file to the documents directory.
-     
-     - Parameters:
-     - tempLocalUrl: The temporary file URL where the downloaded file is stored.
-     - response: The URL response received from the server.
-     - error: Any error encountered during the download.
-     - completionHandler: A closure that gets called with the final file URL, response, and error after the download is completed and the file is moved to its final location.
-     
-     - Note: If the download is successful, the file is moved to the documents directory. If an error occurs, it is passed to the completion handler.
-     */
-    private func handleDownloadCompletion(tempLocalUrl: URL?, response: URLResponse?, error: Error?, completionHandler: @escaping (URL?, URLResponse?, Error?) -> ()) {
-        if let error = error {
-            print("Download error: \(error.localizedDescription)")
-            completionHandler(nil, response, error)
-            return
-        }
-        
-        guard let tempLocalUrl = tempLocalUrl else {
-            print("No file location received!")
-            completionHandler(nil, response, nil)
-            return
-        }
-        
-        let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let fileName = tempLocalUrl.lastPathComponent
-        let destinationUrl = documentsDirectory.appendingPathComponent(fileName)
-        
-        do {
-            if FileManager.default.fileExists(atPath: destinationUrl.path) {
-                try FileManager.default.removeItem(at: destinationUrl)
-            }
-            try FileManager.default.moveItem(at: tempLocalUrl, to: destinationUrl)
-            print("File successfully downloaded to: \(destinationUrl.path)")
-            completionHandler(destinationUrl, response, nil)
-        } catch let moveError {
-            print("File move error: \(moveError.localizedDescription)")
-            completionHandler(nil, response, moveError)
-        }
-    }
+        Cancels the current upload.
+   
+        This method completely stops the upload process.
+   
+        - Example:
+        ```swift
+        let uploader = EscapingNetworkManager()
+        uploader.cancelUpload()
+        ```
+        */
+      public func cancelUpload() {
+          uploadManager.cancelUpload()
+      }
 }

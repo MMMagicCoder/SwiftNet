@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct SwiftUIView: View {
+struct EscapingDataFetchingExample: View {
     @StateObject private  var networkManager = EscapingNetworkManager()
     @State var dataModels: [ImageModel] = []
     @State var images: [UIImage] = []
@@ -55,5 +55,5 @@ struct SwiftUIView: View {
 }
 
 #Preview {
-    SwiftUIView()
+    EscapingDataFetchingExample()
 }

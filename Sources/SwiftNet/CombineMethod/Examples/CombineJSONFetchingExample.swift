@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct CombineJSONFetchingExample: View {
-    @StateObject var vm = CombineFetching<DataModel>()
+    let networkManager = CombineNetworkManager()
+    
     @State var  dataModels: [DataModel] = []
     let url: String = "https://jsonplaceholder.typicode.com/posts"
     
@@ -25,10 +26,10 @@ struct CombineJSONFetchingExample: View {
             }
         }
         .onAppear {
-            vm.fetchJSON(fromURL: url) { returnedData in
-                if let data = returnedData {
-                    self.dataModels = data
-                }
+            networkManager.fetchJSON(fromURL: url) { (returnedData: [DataModel]?, response, error) in
+                guard let data = returnedData else { return }
+                
+                self.dataModels = data
             }
         }
     }

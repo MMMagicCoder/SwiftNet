@@ -13,11 +13,6 @@ struct EscapingDownloadDataExample: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 300, height: 300)
-            } else {
-                ProgressView(value: networkManager.downloadProgress, total: 1.0)
-                    .progressViewStyle(LinearProgressViewStyle())
-                    .frame(maxWidth: 300)
-                    .padding()
             }
             
             Button(action: {
@@ -44,9 +39,15 @@ struct EscapingDownloadDataExample: View {
                     .clipShape(RoundedRectangle(cornerRadius: 25.0))
             })
             
+            ProgressView(value: networkManager.downloadProgress, total: 1.0)
+                .progressViewStyle(LinearProgressViewStyle())
+                .frame(maxWidth: 300)
+                .padding()
+            
             Text(message)
                 .frame(width: 400)
         }
+        .frame(maxWidth: .infinity,maxHeight: .infinity)
     }
 }
 

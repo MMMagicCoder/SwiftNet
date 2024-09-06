@@ -1,27 +1,28 @@
 import SwiftUI
 
 struct EscapingJSONFetchingExample: View {
-    @StateObject var escapingFetching = EscapingFetching<DataModel>()
-    @State var dataModels: [DataModel] = []
+    @StateObject private  var networkManager = EscapingNetworkManager()
+    @State private var dataModels: [DataModel] = []
     let url: String = "https://jsonplaceholder.typicode.com/posts"
     
     var body: some View {
-        List {
-            ForEach(dataModels) { item in
-                VStack(alignment: .leading) {
-                    Text(item.title)
-                        .font(.headline)
-                    Text(item.body)
-                        .foregroundColor(.gray)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+        List(dataModels) { item in
+            VStack(alignment: .leading) {
+                Text(item.title)
+                    .font(.headline)
+                Text(item.body)
+                    .foregroundColor(.gray)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .onAppear {
-            escapingFetching.fetchJSON(fromURL: url) { returnedData in
-                guard let data = returnedData else { return }
-                
-                self.dataModels = data
+            networkManager.fetchJSON(fromURL: url) { (returnedData: [DataModel]?, response, error) in
+                if let data = returnedData {
+                    self.dataModels = data
+                } else {
+                    // Handle error or empty data scenario here
+                    print("Failed to fetch data: \(String(describing: error))")
+                }
             }
         }
     }

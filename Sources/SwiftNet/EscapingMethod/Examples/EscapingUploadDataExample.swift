@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct EscapingUploadData: View {
+struct EscapingUploadDataExample: View {
     @StateObject private  var networkManager = EscapingNetworkManager()
     let url: String = "https://jsonplaceholder.typicode.com/posts"
     @State var message: String = ""
@@ -55,5 +55,5 @@ struct EscapingUploadData: View {
 }
 
 #Preview {
-    EscapingUploadData()
+    EscapingUploadDataExample()
 }
