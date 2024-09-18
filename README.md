@@ -2,7 +2,7 @@
 
  ![](https://img.shields.io/badge/platform-iOS-d3d3d3) ![](https://img.shields.io/badge/iOS-14.0%2B-43A6C6) ![](https://img.shields.io/badge/Swift-5-F86F15)
 
-`NetworkKit` is a Swift package designed to simplify networking operations in `SwiftUI`. It offers three flexible approaches for fetching, downloading, and uploading data or files using `Escaping Closures`, `Combine`, and `async-await` techniques, allowing you to choose the method that best suits your project requirements.
+`SwiftNet` is a Swift package designed to simplify networking operations in `SwiftUI`. It offers three flexible approaches for fetching, downloading, and uploading data or files using `Escaping Closures`, `Combine`, and `async-await` techniques, allowing you to choose the method that best suits your project requirements.
 
 ## Table of contents
    - [Requirements](#requirements)
@@ -43,10 +43,101 @@ https://github.com/MMMagicCoder/SwiftNet.git
   
 Below are examples for each type of task.
 
-Fetching Data
-<a id="fetching-data"></a>
+### Fetching Data
+<a id="fetching"></a>
 
 `SwiftNet` provides two types of data fetching: `JSON Fetching` and `Data Fetching`. For JSON fetching, your model must conform to the `FetchableModel` protocol, which ensures the proper structure for decoding JSON responses.
 
+- JSON Fetching
 
+You can fetch JSON data by using the following methods, depending on the approach you choose. Make sure your model conforms to FetchableModel:
 
+```swift
+struct DataModel: FetchableModel {
+    let userId: Int
+    let id: Int
+    let title: String
+    let body: String
+}
+```
+
+Using Escaping Closures
+
+```swift
+ networkManager.fetchJSON(fromURL: "https://example.com/api/data") { (result: [MyModel]?, response, error) in
+    if let result = result {
+        // Handle the decoded JSON result
+    } else if let error = error {
+        // Handle the error
+    }
+}
+```
+
+Using Combine
+
+```swift
+  networkManager.fetchJSON(fromURL: url) { (returnedData: [DataModel]?, response, error) in
+     if let result = result {
+         // Handle the decoded JSON result
+    } else if let error = error {
+        // Handle the error
+    }
+}
+```
+
+Using async-await
+
+```swift
+Task {
+    do {
+        let result: [MyModel] = try await networkManager.fetchJSON(fromURL: "https://example.com/api/data")
+        // Handle the decoded JSON result
+    } catch {
+        // Handle the error
+    }
+}
+```
+
+- Data Fetching
+
+  Data fetching is used when you need to fetch raw data (e.g., images, binary files) without decoding it into a specific model.
+
+  Using Escaping Closures
+
+```swift
+  networkManager.fetchData(fromURL: "https://example.com/file") { data, response, error in
+    if let data = data {
+        // Handle the fetched data
+    } else if let error = error {
+        // Handle the error
+    }
+}
+```
+
+Using Combine
+
+```swift
+ networkManager.fetchData(fromURL: url) { (returnedData, response, error) in
+     if let result = result {
+         // Handle the returned data
+    } else if let error = error {
+        // Handle the error
+    }
+}
+```
+
+Using async-await
+
+```swift
+Task {
+    do {
+        let data = try await networkManager.fetchData(fromURL: "https://example.com/file")
+        // Handle the fetched data
+    } catch {
+        // Handle the error
+    }
+}
+```
+
+### Downloading Files
+<a id="downloading-files"></a>
