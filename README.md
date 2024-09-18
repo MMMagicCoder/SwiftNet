@@ -1,6 +1,6 @@
 # SwiftNet
 
- ![](https://img.shields.io/badge/platform-iOS-d3d3d3) ![](https://img.shields.io/badge/iOS-14.0%2B-43A6C6) ![](https://img.shields.io/badge/Swift-5-F86F15)
+ ![](https://img.shields.io/badge/platform-iOS-d3d3d3) ![](https://img.shields.io/badge/iOS-13.0%2B-43A6C6) ![](https://img.shields.io/badge/Swift-5-F86F15)
 
 `SwiftNet` is a Swift package designed to simplify networking operations in `SwiftUI`. It offers three flexible approaches for fetching, downloading, and uploading data or files using `Escaping Closures`, `Combine`, and `async-await` techniques, allowing you to choose the method that best suits your project requirements.
 
@@ -18,7 +18,7 @@
 ## Requirements
 <a id="requirements"></a>
    - SwiftUI
-   - iOS 14.0 or above
+   - iOS 13.0 or above
 
 ## Installation
 <a id="installation"></a>
