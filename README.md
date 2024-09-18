@@ -198,3 +198,8 @@ Using async-await
 ### Contribution
 <a id="contribution"></a> 
 If you encounter any issues, feel free to open an issue. Contributions are also welcome, whether it's bug fixes, new features, or documentation improvements.
+
+### License
+
+<a id="license"></a> 
+NetworkKit is distributed under the MIT License.
