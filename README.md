@@ -34,3 +34,19 @@ Then paste this URL:
 https://github.com/MMMagicCoder/SwiftNet.git
 ```
 
+## Usage
+<a id="usage"></a>
+`SwiftNet` provides a streamlined way to perform networking tasks. Whether you're fetching small data, downloading large files, or uploading content, you can choose between Escaping Closures, Combine, or async-await methods. To use these methods, instantiate the appropriate manager:
+- ```let networkManager = EscapingNetworkManager()``` for Escaping Closures.
+- ```let networkManager = CombineNetworkManager()``` for Combine.
+- ```let networkManager = AsyncNetworkManager()``` for async-await.
+  
+Below are examples for each type of task.
+
+Fetching Data
+<a id="fetching-data"></a>
+
+`SwiftNet` provides two types of data fetching: `JSON Fetching` and `Data Fetching`. For JSON fetching, your model must conform to the `FetchableModel` protocol, which ensures the proper structure for decoding JSON responses.
+
+
+
