@@ -140,4 +140,61 @@ Task {
 ```
 
 ### Downloading Files
-<a id="downloading-files"></a>
+<a id="downloading"></a>
+
+Using Escaping Closures Or Combine
+
+```swift
+networkManager.downloadData(fromURL: url) { tempLocalUrl, response, error in
+    if let tempLocalUrl = tempLocalUrl {
+       // Get data from tempLocalUrl url
+  } else if error = error {
+       // Handle the error
+  }
+}
+```
+
+Using async-await
+
+```swift
+Task {
+    do {
+        let fileURL = try await networkManager.downloadFile(using: .async)
+        // Use the file
+    } catch {
+        // Handle the error
+    }
+}
+```
+
+### Uploading Data
+<a id="uploading"></a>
+
+Using Escaping Closures Or Combine
+
+```swift
+networkManager.uploadData(toURL: url, data: json, mimeType: .json) { response , error in
+   if let error = error {
+       // Handle the error
+  } else {
+       // Handle the response 
+  }
+}
+```
+
+Using async-await
+
+```swift
+  Task {
+      do {
+          let returnedResponse = try await networkManager.uploadData(toURL: url, data: json, mimeType: .json)
+              // Handle the response
+   } catch {
+             // Handle the error
+  }
+}
+```
+
+### Contribution
+<a id="contribution"></a> 
+If you encounter any issues, feel free to open an issue. Contributions are also welcome, whether it's bug fixes, new features, or documentation improvements.
